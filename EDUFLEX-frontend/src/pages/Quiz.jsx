@@ -1,100 +1,76 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import api from "../api/apiClient";
-import Navbar from "../components/Navbar";
+import { motion } from "framer-motion";
+import { Brain, Clock } from "lucide-react";
 
-export default function Quiz() {
-  // This page supports opening /quizzes/:id
-  const { id } = useParams(); // quiz id if route is /quizzes/:id
-  const [quiz, setQuiz] = useState(null);
-  const [answers, setAnswers] = useState([]);
-  const [result, setResult] = useState(null);
+const quizzes = [
+  { title: "React Basics Quiz", questions: 10 },
+  { title: "Node.js Quiz", questions: 8 },
+  { title: "MongoDB Quiz", questions: 12 },
+  { title: "Express Fundamentals", questions: 9 },
+  { title: "Frontend Design Quiz", questions: 7 },
+  { title: "JavaScript Advanced", questions: 15 },
+];
 
-  useEffect(() => {
-    if (!id) return;
-    api.get(`/quizzes/${id}`)
-      .then((res) => {
-        setQuiz(res.data);
-        setAnswers(new Array(res.data.questions.length).fill(null));
-      })
-      .catch((err) => console.error(err));
-  }, [id]);
-
-  const handleOption = (qIndex, optionIndex) => {
-    const copy = [...answers];
-    copy[qIndex] = optionIndex;
-    setAnswers(copy);
-  };
-
-  const handleSubmit = async () => {
-    if (!quiz) return;
-    try {
-      const res = await api.post("/quizzes/submit", { quizId: quiz._id, answers });
-      setResult(res.data);
-    } catch (err) {
-      alert(err.response?.data?.message || "Submit failed");
-    }
-  };
-
-  if (!id) return (
-    <>
-      <Navbar />
-      <div className="container mx-auto p-6">
-        <p>Select a quiz from a course or use the instructor panel to create one.</p>
-      </div>
-    </>
-  );
-
+function Quiz() {
   return (
-    <>
-      <Navbar />
-      <div className="container mx-auto p-6">
-        {!quiz ? (
-          <p>Loading quiz...</p>
-        ) : (
-          <div className="bg-white p-6 rounded shadow">
-            <h1 className="text-xl font-semibold mb-3">{quiz.title}</h1>
+    <div className="p-8 bg-gradient-to-br from-indigo-50 via-blue-50 to-white min-h-screen">
+      <div className="max-w-6xl mx-auto text-center">
+        {/* Header */}
+        <h2 className="text-4xl font-extrabold mb-3 text-gray-800 flex justify-center items-center gap-2">
+          <Brain className="text-indigo-600" size={36} /> Interactive Quizzes
+        </h2>
+        <p className="text-gray-600 mb-10 text-lg">
+          Sharpen your skills with topic-wise quizzes and real-time feedback ⚡
+        </p>
 
-            {quiz.questions.map((q, qi) => (
-              <div key={qi} className="mb-4">
-                <p className="font-medium">{qi + 1}. {q.questionText}</p>
-                <div className="mt-2 grid gap-2">
-                  {q.options.map((opt, oi) => (
-                    <label
-                      key={oi}
-                      className={`p-2 border rounded cursor-pointer ${
-                        answers[qi] === oi ? "bg-blue-50 border-blue-400" : ""
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name={`q-${qi}`}
-                        checked={answers[qi] === oi}
-                        onChange={() => handleOption(qi, oi)}
-                        className="mr-2"
-                      />
-                      {opt}
-                    </label>
-                  ))}
-                </div>
+        {/* Quiz Grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {quizzes.map((quiz, index) => (
+            <motion.div
+              key={quiz.title}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.4 }}
+              whileHover={{ scale: 1.05 }}
+              className="relative bg-white/70 backdrop-blur-md border border-transparent hover:border-indigo-200 rounded-2xl shadow-md hover:shadow-2xl transition-all p-6 group"
+            >
+              {/* Gradient border glow */}
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-blue-500 opacity-0 group-hover:opacity-10 blur-xl transition-all rounded-2xl"></div>
+
+              {/* Content */}
+              <h3 className="text-xl font-semibold text-indigo-700 mb-3">
+                {quiz.title}
+              </h3>
+
+              <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
+                <Clock size={16} />
+                <p>
+                  {quiz.questions} Questions •{" "}
+                  <span className="font-medium text-gray-700">
+                    {quiz.questions < 9
+                      ? "Easy"
+                      : quiz.questions < 12
+                      ? "Medium"
+                      : "Hard"}
+                  </span>
+                </p>
               </div>
-            ))}
 
-            <div className="flex items-center space-x-3">
-              <button onClick={handleSubmit} className="bg-green-600 text-white px-4 py-2 rounded">
-                Submit Quiz
-              </button>
-            </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white w-full py-3 rounded-xl font-medium hover:opacity-90 transition"
+              >
+                Start Quiz
+              </motion.button>
 
-            {result && (
-              <div className="mt-4 p-3 bg-gray-50 rounded">
-                <p>Score: {result.score} / {result.totalQuestions}</p>
-                <p>Percentage: {result.percentage}%</p>
+              <div className="absolute top-4 right-4 text-yellow-400 cursor-pointer text-xl hover:scale-125 transition-transform">
+                ⭐
               </div>
-            )}
-          </div>
-        )}
+            </motion.div>
+          ))}
+        </div>
       </div>
-    </>
+    </div>
   );
 }
+
+export default Quiz;
