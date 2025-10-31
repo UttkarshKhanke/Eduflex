@@ -4,6 +4,10 @@ import mongoose from "mongoose";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
+import quizRoutes from "./routes/quizRoutes.js";
+import progressRoutes from "./routes/progressRoutes.js";
+
+
 
 dotenv.config();
 const app = express();
@@ -11,6 +15,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/api/courses", courseRoutes);
+app.use("/api/quizzes", quizRoutes);
+app.use("/api/progress", progressRoutes);
 
 // Routes
 app.use("/api/auth", authRoutes);
