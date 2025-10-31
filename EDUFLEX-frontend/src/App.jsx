@@ -4,24 +4,25 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
 import Quiz from "./pages/Quiz";
+import Unauthorized from "./pages/Unauthorized"; // make sure to create this
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 
 function App() {
   return (
     <Router>
-      {/* Navbar will appear on all protected routes */}
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* Protected Routes */}
+        {/* 🔐 Student & Instructor Protected Routes */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["student", "instructor"]}>
               <>
                 <Navbar />
                 <Dashboard />
@@ -33,7 +34,7 @@ function App() {
         <Route
           path="/courses"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["student", "instructor"]}>
               <>
                 <Navbar />
                 <Courses />
@@ -45,7 +46,7 @@ function App() {
         <Route
           path="/quiz"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["student", "instructor"]}>
               <>
                 <Navbar />
                 <Quiz />

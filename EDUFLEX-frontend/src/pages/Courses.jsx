@@ -1,74 +1,101 @@
-import { useState, useEffect } from "react";
-import api from "../api/apiClient";
-
-const demoCourses = [
-  { title: "React for Beginners", instructor: "John Doe", lessons: 24 },
-  { title: "Node.js Fundamentals", instructor: "Jane Smith", lessons: 18 },
-  { title: "MongoDB Mastery", instructor: "Alan Walker", lessons: 15 },
-  { title: "Fullstack Web Development", instructor: "Emily Carter", lessons: 32 },
-  { title: "Python for Data Science", instructor: "Chris Evans", lessons: 20 },
-  { title: "Deep Learning with TensorFlow", instructor: "Sophia Lee", lessons: 28 },
-];
+// frontend/src/pages/Courses.jsx
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Plus, Search } from "lucide-react";
 
 export default function Courses() {
-  const [courses, setCourses] = useState([]);
+  const [search, setSearch] = useState("");
+  const role = localStorage.getItem("role"); // 'student' or 'instructor'
 
-  useEffect(() => {
-    // Replace with API later
-    // api.get("/courses").then(res => setCourses(res.data)).catch(console.error);
-    setCourses(demoCourses);
-  }, []);
+  const studentCourses = [
+    { title: "React Basics", progress: "80%" },
+    { title: "Node.js Fundamentals", progress: "65%" },
+  ];
+
+  const instructorCourses = [
+    { title: "Advanced React Patterns", students: 120 },
+    { title: "Full-Stack with MERN", students: 95 },
+  ];
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-10">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-800">Available Courses</h2>
-          <p className="text-gray-500 mt-1">
-            Explore the latest courses and enhance your learning journey.
-          </p>
+    <div className="p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
+          <h2 className="text-3xl font-semibold text-gray-800 mb-4 sm:mb-0">
+            {role === "instructor" ? "My Courses 👨‍🏫" : "Enrolled Courses 📚"}
+          </h2>
+
+          {/* Search and (optional) Add buttons */}
+          <div className="flex items-center gap-4">
+            {/* Search input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search courses..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-400 focus:outline-none transition bg-white"
+              />
+            </div>
+
+            {/* Add button (only for instructor) */}
+            {role === "instructor" && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-indigo-700 transition"
+              >
+                <Plus size={18} />
+                Add Course
+              </motion.button>
+            )}
+          </div>
         </div>
 
-        <button className="mt-4 sm:mt-0 bg-gradient-to-r from-indigo-600 to-blue-500 text-white px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:scale-[1.03] transition-all duration-300">
-          + Add New Course
-        </button>
-      </div>
-
-      {/* Courses Grid */}
-      {courses.length === 0 ? (
-        <div className="flex justify-center items-center h-60 text-gray-500">
-          No courses available.
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-          {courses.map((course) => (
-            <div
-              key={course.title}
-              className="bg-white rounded-2xl shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 relative overflow-hidden group"
-            >
-              {/* Decorative Gradient Top Bar */}
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-600 to-blue-500"></div>
-
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
+        {/* Course Cards */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {(role === "instructor" ? instructorCourses : studentCourses)
+            .filter((c) =>
+              c.title.toLowerCase().includes(search.toLowerCase())
+            )
+            .map((course, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.03 }}
+                className="bg-white rounded-2xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition"
+              >
+                <h3 className="text-lg font-semibold text-indigo-600 mb-2">
                   {course.title}
                 </h3>
-                <p className="text-gray-600 mt-2">
-                  👨‍🏫 <span className="font-medium">{course.instructor}</span>
-                </p>
-                <p className="text-gray-500 text-sm mt-1">
-                  📚 {course.lessons} Lessons
-                </p>
 
-                <button className="mt-5 w-full bg-gradient-to-r from-indigo-600 to-blue-500 text-white py-2.5 rounded-lg font-medium hover:opacity-90 hover:scale-[1.02] transition-all duration-300">
-                  Enroll Now
+                {role === "student" ? (
+                  <p className="text-gray-600 mb-3">
+                    Progress:{" "}
+                    <span className="font-medium text-gray-800">
+                      {course.progress}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-gray-600 mb-3">
+                    Enrolled Students:{" "}
+                    <span className="font-medium text-gray-800">
+                      {course.students}
+                    </span>
+                  </p>
+                )}
+
+                <button className="w-full py-2 mt-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition">
+                  {role === "student" ? "Continue Learning" : "Manage Course"}
                 </button>
-              </div>
-            </div>
-          ))}
+              </motion.div>
+            ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

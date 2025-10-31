@@ -12,12 +12,19 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       const res = await api.post("/auth/login", { email, password });
+
+      // ✅ Store user details in localStorage properly
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
+      localStorage.setItem("role", res.data.user?.role?.toLowerCase()); // <-- fixed line
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      // alert(`Welcome back, ${res.data.user.name || "User"}!`);
       navigate("/dashboard");
     } catch (err) {
+      console.error("Login error:", err.response?.data || err.message);
       alert(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
