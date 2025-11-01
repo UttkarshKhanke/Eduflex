@@ -1,65 +1,92 @@
-import Quiz from "../models/Quiz.js";
-import Progress from "../models/Progress.js";
+import Quiz from "../models/quizModel.js";
 
-// Instructor creates a quiz
+/**
+ * @desc Create a new quiz (instructor only)
+ */
 export const createQuiz = async (req, res) => {
   try {
-    const { course, title, questions } = req.body;
-    const instructor = req.user.id;
+    const { title, description, questions } = req.body;
 
-    const quiz = new Quiz({ course, instructor, title, questions });
-    await quiz.save();
+    if (!title || !questions || questions.length === 0) {
+      return res.status(400).json({ message: "Title and questions are required" });
+    }
+
+    const quiz = await Quiz.create({
+      title,
+      description,
+      questions,
+      createdBy: req.user._id,
+    });
 
     res.status(201).json({ message: "Quiz created successfully", quiz });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error creating quiz:", error);
+    res.status(500).json({ message: "Error creating quiz", error: error.message });
   }
 };
 
-// Get quiz by ID
+/**
+ * @desc Get all quizzes
+ */
+export const getAllQuizzes = async (req, res) => {
+  try {
+    const quizzes = await Quiz.find().populate("createdBy", "name email");
+    res.json(quizzes);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch quizzes", error: error.message });
+  }
+};
+
+/**
+ * @desc Get a quiz by ID
+ */
 export const getQuizById = async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.id).populate("course", "title");
-    if (!quiz) return res.status(404).json({ message: "Quiz not found" });
-    res.status(200).json(quiz);
+    const quiz = await Quiz.findById(req.params.id);
+    if (!quiz) {
+      return res.status(404).json({ message: "Quiz not found" });
+    }
+    res.json(quiz);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Failed to fetch quiz", error: error.message });
   }
 };
 
-// Student submits quiz
-export const submitQuiz = async (req, res) => {
+/**
+ * @desc Submit quiz attempt (Student)
+ */
+export const submitQuizAttempt = async (req, res) => {
   try {
-    const { quizId, answers } = req.body;
-    const quiz = await Quiz.findById(quizId);
+    const { id } = req.params;
+    const { answers } = req.body; // array of selected option indexes
 
+    const quiz = await Quiz.findById(id);
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
 
+    // Check if user already attempted
+    const alreadyAttempted = quiz.attempts.some(
+      (a) => a.user.toString() === req.user._id.toString()
+    );
+    if (alreadyAttempted)
+      return res.status(400).json({ message: "You have already attempted this quiz." });
+
+    // Calculate score
     let score = 0;
     quiz.questions.forEach((q, i) => {
       if (answers[i] === q.correctAnswer) score++;
     });
 
-    const percentage = ((score / quiz.questions.length) * 100).toFixed(2);
-
-    // Save progress
-    const progress = new Progress({
-      student: req.user.id,
-      course: quiz.course,
-      quiz: quiz._id,
+    // Save attempt
+    quiz.attempts.push({
+      user: req.user._id,
       score,
-      totalQuestions: quiz.questions.length,
-      percentage,
+      completedAt: new Date(),
     });
-    await progress.save();
+    await quiz.save();
 
-    res.status(200).json({
-      message: "Quiz submitted successfully",
-      score,
-      totalQuestions: quiz.questions.length,
-      percentage,
-    });
+    res.json({ message: "Quiz submitted successfully", score, total: quiz.questions.length });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error submitting quiz:", error);
+    res.status(500).json({ message: "Error submitting quiz", error: error.message });
   }
 };

@@ -1,68 +1,119 @@
+// backend/controllers/courseController.js
 import Course from "../models/Course.js";
 
-// Create a new course
+/**
+ * Create a new course
+ */
 export const createCourse = async (req, res) => {
   try {
-    const { title, description, price, category } = req.body;
-    const instructor = req.user.id; // from auth middleware
+    const { title, description, modules } = req.body;
 
-    const course = new Course({ title, description, price, category, instructor });
-    await course.save();
+    if (!title || !modules || modules.length === 0) {
+      return res.status(400).json({ message: "Title and at least one module are required" });
+    }
 
-    res.status(201).json({ message: "Course created successfully", course });
+    const instructorId = req.user?.id;
+    if (!instructorId) {
+      return res.status(401).json({ message: "Unauthorized: Missing instructor ID" });
+    }
+
+    // ✅ Sanitize module data to ensure proper structure
+    const formattedModules = modules.map((m) => ({
+      name: m.name || "Untitled Module",
+      content: m.content || "",
+      image: m.image || "",
+      video: m.video || "",
+    }));
+
+    const newCourse = new Course({
+      title,
+      description,
+      modules: formattedModules,
+      createdBy: instructorId,
+      createdAt: new Date(),
+    });
+
+    await newCourse.save();
+
+    res.status(201).json({
+      message: "Course created successfully",
+      course: newCourse,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("❌ Error creating course:", error);
+    res.status(500).json({ message: "Error creating course", error: error.message });
   }
 };
 
-// Get all courses
+/**
+ * Get all courses
+ */
 export const getAllCourses = async (req, res) => {
   try {
-    const courses = await Course.find().populate("instructor", "name email");
-    res.status(200).json(courses);
+    const courses = await Course.find()
+      .populate("createdBy", "name email role")
+      .sort({ createdAt: -1 });
+    res.status(200).json({ courses });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Error fetching courses", error: error.message });
   }
 };
 
-// Get single course by ID
-export const getCourseById = async (req, res) => {
-  try {
-    const course = await Course.findById(req.params.id).populate("instructor", "name email");
-    if (!course) return res.status(404).json({ message: "Course not found" });
-    res.status(200).json(course);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
+import Course from "../models/Course.js";
 
-// Update course
+// ✅ Update course
 export const updateCourse = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id);
+    const { id } = req.params;
+    const { title, description, modules } = req.body;
 
-    if (!course) return res.status(404).json({ message: "Course not found" });
-    if (course.instructor.toString() !== req.user.id)
-      return res.status(403).json({ message: "Not authorized" });
+    const updatedCourse = await Course.findByIdAndUpdate(
+      id,
+      { title, description, modules },
+      { new: true }
+    );
 
-    const updatedCourse = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.status(200).json({ message: "Course updated successfully", updatedCourse });
+    if (!updatedCourse) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    res.json({ message: "Course updated successfully", course: updatedCourse });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Failed to update course" });
   }
 };
 
-// Delete course
+// ✅ Delete course
 export const deleteCourse = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id);
-    if (!course) return res.status(404).json({ message: "Course not found" });
-    if (course.instructor.toString() !== req.user.id)
-      return res.status(403).json({ message: "Not authorized" });
+    const { id } = req.params;
 
-    await course.deleteOne();
-    res.status(200).json({ message: "Course deleted successfully" });
+    const deletedCourse = await Course.findByIdAndDelete(id);
+    if (!deletedCourse) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    res.json({ message: "Course deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Failed to delete course" });
+  }
+};
+
+
+/**
+ * Get course by ID
+ */
+export const getCourseById = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id).populate("createdBy", "name email");
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+    res.status(200).json(course);
+  } catch (error) {
+    console.error("Error fetching course details:", error);
+    res.status(500).json({ message: "Error fetching course details", error: error.message });
   }
 };

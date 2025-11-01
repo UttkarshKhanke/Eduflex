@@ -1,20 +1,35 @@
 // frontend/src/pages/Quiz.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Brain, Clock, Plus, Search } from "lucide-react";
-
-const quizzes = [
-  { title: "React Basics Quiz", questions: 10 },
-  { title: "Node.js Quiz", questions: 8 },
-  { title: "MongoDB Quiz", questions: 12 },
-  { title: "Express Fundamentals", questions: 9 },
-  { title: "Frontend Design Quiz", questions: 7 },
-  { title: "JavaScript Advanced", questions: 15 },
-];
+import { Brain, Clock, Plus, Search, CheckCircle } from "lucide-react";
+import apiClient from "../api/apiClient";
+import { useNavigate } from "react-router-dom";
 
 function Quiz() {
   const [search, setSearch] = useState("");
-  const role = localStorage.getItem("role"); // student | instructor
+  const [quizzes, setQuizzes] = useState([]);
+  const [attempts, setAttempts] = useState([]);
+  const navigate = useNavigate();
+  const role = localStorage.getItem("role");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const quizRes = await apiClient.get("/quiz");
+        const attemptRes = await apiClient.get("/quiz/attempts/user");
+        setQuizzes(quizRes.data);
+        setAttempts(attemptRes.data);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const getAttemptStatus = (quizId) => {
+    const attempt = attempts.find((a) => a.quiz._id === quizId);
+    return attempt ? attempt : null;
+  };
 
   return (
     <div className="p-8 bg-gradient-to-br from-indigo-50 via-blue-50 to-white min-h-screen">
@@ -25,9 +40,7 @@ function Quiz() {
             <Brain className="text-indigo-600" size={36} /> Quizzes
           </h2>
 
-          {/* Search and Create buttons */}
           <div className="flex items-center gap-4 mt-4 sm:mt-0">
-            {/* Search Input */}
             <div className="relative">
               <Search className="absolute left-3 top-3 text-gray-400" size={18} />
               <input
@@ -39,12 +52,12 @@ function Quiz() {
               />
             </div>
 
-            {/* Create button (only for instructors) */}
             {role === "instructor" && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-indigo-700 transition"
+                onClick={() => navigate("/quiz/create")}
               >
                 <Plus size={18} />
                 Create Quiz
@@ -53,61 +66,53 @@ function Quiz() {
           </div>
         </div>
 
-        <p className="text-gray-600 mb-8 text-lg text-center sm:text-left">
-          {role === "instructor"
-            ? "Manage or create topic-wise quizzes for your students 🧑‍🏫"
-            : "Sharpen your skills with topic-wise quizzes and real-time feedback ⚡"}
-        </p>
-
-        {/* Quiz Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {quizzes
             .filter((quiz) =>
               quiz.title.toLowerCase().includes(search.toLowerCase())
             )
-            .map((quiz, index) => (
-              <motion.div
-                key={quiz.title}
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.4 }}
-                whileHover={{ scale: 1.05 }}
-                className="relative bg-white/70 backdrop-blur-md border border-transparent hover:border-indigo-200 rounded-2xl shadow-md hover:shadow-2xl transition-all p-6 group"
-              >
-                {/* Gradient border glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-blue-500 opacity-0 group-hover:opacity-10 blur-xl transition-all rounded-2xl"></div>
-
-                {/* Content */}
-                <h3 className="text-xl font-semibold text-indigo-700 mb-3">
-                  {quiz.title}
-                </h3>
-
-                <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
-                  <Clock size={16} />
-                  <p>
-                    {quiz.questions} Questions •{" "}
-                    <span className="font-medium text-gray-700">
-                      {quiz.questions < 9
-                        ? "Easy"
-                        : quiz.questions < 12
-                        ? "Medium"
-                        : "Hard"}
-                    </span>
-                  </p>
-                </div>
-
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white w-full py-3 rounded-xl font-medium hover:opacity-90 transition"
+            .map((quiz, index) => {
+              const attempt = getAttemptStatus(quiz._id);
+              return (
+                <motion.div
+                  key={quiz._id}
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.4 }}
+                  whileHover={{ scale: 1.05 }}
+                  className="relative bg-white/70 backdrop-blur-md border border-transparent hover:border-indigo-200 rounded-2xl shadow-md hover:shadow-2xl transition-all p-6 group"
                 >
-                  {role === "instructor" ? "Manage Quiz" : "Start Quiz"}
-                </motion.button>
+                  <h3 className="text-xl font-semibold text-indigo-700 mb-3">
+                    {quiz.title}
+                  </h3>
 
-                <div className="absolute top-4 right-4 text-yellow-400 cursor-pointer text-xl hover:scale-125 transition-transform">
-                  ⭐
-                </div>
-              </motion.div>
-            ))}
+                  <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
+                    <Clock size={16} />
+                    <p>{quiz.questions.length} Questions</p>
+                  </div>
+
+                  {attempt ? (
+                    <div className="flex flex-col items-center text-green-600">
+                      <CheckCircle size={24} />
+                      <p className="font-semibold mt-2">
+                        Completed ✅
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Score: {attempt.score} / {attempt.totalMarks}
+                      </p>
+                    </div>
+                  ) : (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => navigate(`/quiz/${quiz._id}`)}
+                      className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white w-full py-3 rounded-xl font-medium hover:opacity-90 transition"
+                    >
+                      Start Quiz
+                    </motion.button>
+                  )}
+                </motion.div>
+              );
+            })}
         </div>
       </div>
     </div>

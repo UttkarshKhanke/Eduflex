@@ -1,6 +1,7 @@
 import Course from "../models/Course.js";
 import Progress from "../models/Progress.js";
-import Quiz from "../models/Quiz.js";
+import Quiz from "../models/quizModel.js";
+
 import mongoose from "mongoose";
 
 /**

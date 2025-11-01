@@ -1,11 +1,25 @@
+// backend/routes/quizRoutes.js
 import express from "express";
-import { createQuiz, getQuizById, submitQuiz } from "../controllers/quizController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import {
+  createQuiz,
+  getAllQuizzes,
+  getQuizById,
+  submitQuizAttempt,
+} from "../controllers/quizController.js";
+import { verifyToken, authorizeRoles } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", protect, createQuiz); // Instructor creates quiz
-router.get("/:id", protect, getQuizById); // Get quiz
-router.post("/submit", protect, submitQuiz); // Student submits quiz
+// ✅ Create quiz (Instructor only)
+router.post("/", verifyToken, authorizeRoles("instructor"), createQuiz);
+
+// ✅ Get all quizzes (for students)
+router.get("/", verifyToken, getAllQuizzes);
+
+// ✅ Get single quiz by ID
+router.get("/:id", verifyToken, getQuizById);
+
+// ✅ Submit quiz attempt (Student only)
+router.post("/:id/attempt", verifyToken, authorizeRoles("student"), submitQuizAttempt);
 
 export default router;
