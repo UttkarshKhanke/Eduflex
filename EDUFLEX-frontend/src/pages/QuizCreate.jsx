@@ -48,8 +48,7 @@ const QuizCreate = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/quiz/create",
+      const res = await axios.post("http://localhost:5000/api/quiz", 
         {
           title,
           description,
@@ -136,18 +135,26 @@ const QuizCreate = () => {
             ))}
 
             <label style={{ display: "block", marginTop: "5px" }}>
-              ✅ Correct Answer (index 0–3):
-              <input
-                type="number"
-                min="0"
-                max="3"
-                value={q.correctAnswer}
-                onChange={(e) =>
-                  handleQuestionChange(i, "correctAnswer", +e.target.value)
-                }
-                style={{ marginLeft: "10px", padding: "5px", width: "60px" }}
-              />
-            </label>
+                  ✅ Correct Answer (Option 1–4):
+                  <select
+                    value={q.correctAnswer + 1} // show 1–4 to the user
+                    onChange={(e) =>
+                      handleQuestionChange(i, "correctAnswer", parseInt(e.target.value) - 1)
+                    }
+                    style={{
+                      marginLeft: "10px",
+                      padding: "5px",
+                      borderRadius: "5px",
+                      width: "100px",
+                    }}
+                  >
+                    <option value="1">Option 1</option>
+                    <option value="2">Option 2</option>
+                    <option value="3">Option 3</option>
+                    <option value="4">Option 4</option>
+                  </select>
+                </label>
+
           </div>
         ))}
 
