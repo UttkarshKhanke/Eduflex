@@ -3,10 +3,15 @@ import express from "express";
 import multer from "multer";
 import Course from "../models/Course.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
+import {
+  getUserProgress,
+  toggleModuleCompletion,
+  completeCourse,
+} from "../controllers/progressController.js";
 
 const router = express.Router();
 
-// 🔹 Store uploads in memory (MongoDB will store binary data)
+// 🔹 Store uploads in memory (MongoDB stores binary data)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
@@ -17,7 +22,6 @@ router.get("/", async (req, res) => {
   try {
     const courses = await Course.find().populate("createdBy", "name email");
 
-    // ✅ Prevent sending raw binary buffers in list view
     const safeCourses = courses.map((course) => ({
       ...course._doc,
       modules: course.modules.map((mod) => ({
@@ -42,7 +46,6 @@ router.get("/:id", async (req, res) => {
     const course = await Course.findById(req.params.id).populate("createdBy", "name email");
     if (!course) return res.status(404).json({ message: "Course not found" });
 
-    // ✅ Prevent recursive object issue
     const safeCourse = {
       ...course._doc,
       modules: course.modules.map((mod) => ({
@@ -94,7 +97,6 @@ router.post(
       const { title, description, modules } = req.body;
       if (!title) return res.status(400).json({ message: "Title is required" });
 
-      // Parse modules safely
       let parsedModules = [];
       try {
         parsedModules = typeof modules === "string" ? JSON.parse(modules) : modules;
@@ -108,7 +110,6 @@ router.post(
 
         return {
           name: mod.name || "Untitled Module",
-          // ✅ Ensure content is always stored as a clean string
           content:
             typeof mod.content === "string"
               ? mod.content.trim()
@@ -184,7 +185,6 @@ router.put(
 
         return {
           name: mod.name || "Untitled Module",
-          // ✅ Same safe content handling here
           content:
             typeof mod.content === "string"
               ? mod.content.trim()
@@ -241,5 +241,18 @@ router.delete("/:id", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Error deleting course", error: error.message });
   }
 });
+
+/* =========================================================
+   🧩 PROGRESS ROUTES
+   ========================================================= */
+
+// ✅ Get progress of the current user for this course
+router.get("/:courseId/progress", verifyToken, getUserProgress);
+
+// ✅ Toggle module completion status
+router.put("/:courseId/module/:moduleIndex", verifyToken, toggleModuleCompletion);
+
+// ✅ Mark entire course as completed
+router.put("/:courseId/complete", verifyToken, completeCourse);
 
 export default router;

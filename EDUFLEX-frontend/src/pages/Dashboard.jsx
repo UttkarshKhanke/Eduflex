@@ -20,50 +20,64 @@ function Dashboard() {
 
   // Fetch analytics data from backend
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const { data } = await axios.get("http://localhost:5000/api/analytics/stats", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setStatsData(data.stats);
-      } catch (err) {
-        console.error("Error fetching stats:", err);
-        setError("Unable to load dashboard data.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      console.log("🟩 Stored token:", token);
 
-    fetchStats();
-  }, [token]);
+      if (!token) {
+        setError("No token found. Please login again.");
+        setLoading(false);
+        return;
+      }
+
+      const res = await axios.get("http://localhost:5000/api/analytics/stats", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("📊 Analytics data:", res.data);
+      setStatsData(res.data.stats);
+    } catch (err) {
+      console.error("🚨 Error fetching analytics:", err.response?.data || err);
+      setError(err.response?.data?.message || "Unable to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchStats();
+}, []);
+
 
   // Stats cards
   const studentStats = [
-    {
-      title: "Courses Enrolled",
-      value: statsData?.enrolledCourses ?? "--",
-      colorFrom: "from-indigo-500",
-      colorTo: "to-blue-500",
-      icon: <BookOpen size={28} />,
-    },
-    {
-      title: "Quizzes Completed",
-      value: statsData?.quizzesCompleted ?? "--",
-      colorFrom: "from-cyan-500",
-      colorTo: "to-sky-400",
-      icon: <ClipboardCheck size={28} />,
-    },
-    {
-      title: "Overall Progress",
-      value: statsData?.overallProgress
-        ? `${statsData.overallProgress}%`
-        : "--",
-      colorFrom: "from-green-500",
-      colorTo: "to-emerald-400",
-      icon: <TrendingUp size={28} />,
-    },
-  ];
+  {
+    title: "Courses Completed",
+    value: statsData?.coursesCompleted ?? "--",
+    colorFrom: "from-indigo-500",
+    colorTo: "to-blue-500",
+    icon: <BookOpen size={28} />,
+  },
+  {
+    title: "Quizzes Completed",
+    value: statsData?.totalQuizzes ?? "--",
+    colorFrom: "from-cyan-500",
+    colorTo: "to-sky-400",
+    icon: <ClipboardCheck size={28} />,
+  },
+  {
+    title: "Overall Progress",
+    value: statsData?.overallProgress
+      ? `${statsData.overallProgress}%`
+      : "--",
+    colorFrom: "from-green-500",
+    colorTo: "to-emerald-400",
+    icon: <TrendingUp size={28} />,
+  },
+];
+
 
   const instructorStats = [
     {
