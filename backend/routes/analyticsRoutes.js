@@ -1,10 +1,11 @@
+// backend/routes/analyticsRoutes.js
 import express from "express";
-import { getCourseAnalytics, getInstructorAnalytics } from "../controllers/analyticsController.js";
+import { getDashboardStats } from "../controllers/analyticsController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/course/:courseId", protect, getCourseAnalytics);
-router.get("/instructor", protect, getInstructorAnalytics);
+// ✅ Unified route for both student and instructor dashboard analytics
+router.get("/stats", protect, getDashboardStats);
 
 export default router;
